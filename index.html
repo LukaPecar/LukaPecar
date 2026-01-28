@@ -7,8 +7,9 @@
 
     <!-- Open Graph / LinkedIn Preview -->
     <meta property="og:title" content="Hier klicken">
-    <meta property="og:description" content="Bereit? Ein Klick genügt.">
+    <meta property="og:description" content="Wir begleiten Schweizer KMU dabei, unabhängig von Netzwerk und Empfehlungen zu wachsen. Bereit? Ein Klick genügt.">
     <meta property="og:type" content="website">
+    <meta property="og:image" content="https://lukapecar.github.io/LukaPecar/og-image.jpg">
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
     <style>
@@ -212,22 +213,18 @@
                 e.preventDefault();
                 e.stopPropagation();
 
-                // Absolute Sperre gegen mehrfaches Absenden
                 if (submitted) return false;
                 submitted = true;
 
-                // Button sofort deaktivieren
                 submitButton.disabled = true;
                 submitButton.style.pointerEvents = 'none';
                 submitButton.textContent = 'Wird gesendet...';
 
                 const email = document.getElementById('email').value;
 
-                // Formular sofort ausblenden
                 form.style.display = 'none';
                 document.getElementById('successMessage').style.display = 'block';
 
-                // Webhook an Make.com senden (nur einmal)
                 fetch('https://hook.eu1.make.com/44jdr3c410lp18crqyxcx74qja6w7l9b', {
                     method: 'POST',
                     headers: {
