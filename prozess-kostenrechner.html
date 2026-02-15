@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Potentialcheck | Prozess-Kostenrechner</title>
+<style>
+  :root {
+    --bg: #0A0A0B;
+    --surface: #141416;
+    --surface-hover: #1C1C20;
+    --border: #2A2A30;
+    --text: #F0F0F2;
+    --text-muted: #8A8A96;
+    --accent: #C9A84C;
+    --accent-dim: rgba(201, 168, 76, 0.08);
+    --accent-glow: rgba(201, 168, 76, 0.15);
+    --red: #FF6B6B;
+    --orange: #FFB347;
+    --yellow: #FFE066;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: 
+      linear-gradient(rgba(201, 168, 76, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201, 168, 76, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  nav {
+    padding: 28px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-potentialcheck {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .nav-badge {
+    font-size: 11px;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 100px;
+    letter-spacing: 0.5px;
+  }
+
+  .hero {
+    padding: 80px 0 60px;
+    text-align: center;
+  }
+
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid rgba(201, 168, 76, 0.15);
+    padding: 8px 18px;
+    border-radius: 100px;
+    margin-bottom: 32px;
+    animation: fadeInUp 0.6s ease-out;
+  }
+
+  .hero-tag::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    animation: fadeInUp 0.6s ease-out 0.1s both;
+  }
+
+  .hero h1 .highlight { color: var(--accent); }
+
+  .hero p {
+    font-size: 17px;
+    color: var(--text-muted);
+    max-width: 560px;
+    margin: 0 auto;
+    line-height: 1.6;
+    animation: fadeInUp 0.6s ease-out 0.2s both;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .calc-section { padding: 0 0 40px; }
+
+  .calc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+    animation: fadeInUp 0.6s ease-out 0.3s both;
+  }
+
+  @media (max-width: 768px) {
+    .calc-grid { grid-template-columns: 1fr; }
+    .proof-grid { grid-template-columns: 1fr !important; }
+    .context-grid { grid-template-columns: 1fr !important; }
+  }
+
+  .calc-inputs {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+  }
+
+  .calc-inputs h2 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .calc-inputs .subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 32px; }
+
+  .input-group { margin-bottom: 28px; }
+  .input-group:last-of-type { margin-bottom: 0; }
+
+  .input-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+
+  .input-label label { font-size: 13px; font-weight: 500; color: var(--text); }
+
+  .input-label .value-display {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .slider-container { position: relative; padding: 4px 0; }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 22px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(201, 168, 76, 0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 0 30px rgba(201, 168, 76, 0.5);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 22px; height: 22px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 20px rgba(201, 168, 76, 0.3);
+  }
+
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  .calc-results { position: sticky; top: 40px; }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+    margin-bottom: 16px;
+    transition: border-color 0.3s ease;
+  }
+
+  .result-card.main {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, var(--surface) 0%, rgba(201, 168, 76, 0.03) 100%);
+  }
+
+  .result-card .label {
+    font-size: 12px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); margin-bottom: 12px;
+  }
+
+  .result-card .amount {
+    font-size: clamp(36px, 4vw, 48px);
+    font-weight: 700; color: var(--text);
+    line-height: 1; transition: color 0.3s ease;
+  }
+
+  .result-card.main .amount { color: var(--accent); }
+
+  .result-card .suffix {
+    font-size: 14px; color: var(--text-muted); margin-top: 6px;
+  }
+
+  .result-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .result-small {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .result-small .label {
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-muted); margin-bottom: 8px;
+  }
+
+  .result-small .amount { font-size: 22px; font-weight: 700; }
+
+  .severity {
+    margin-top: 16px; padding: 20px 24px;
+    border-radius: 12px; display: flex;
+    align-items: center; gap: 12px;
+    font-size: 13px; font-weight: 500;
+    transition: all 0.4s ease;
+  }
+
+  .severity.low { background: rgba(201, 168, 76, 0.08); border: 1px solid rgba(201, 168, 76, 0.2); color: var(--accent); }
+  .severity.medium { background: rgba(255, 224, 102, 0.08); border: 1px solid rgba(255, 224, 102, 0.2); color: var(--yellow); }
+  .severity.high { background: rgba(255, 179, 71, 0.08); border: 1px solid rgba(255, 179, 71, 0.2); color: var(--orange); }
+  .severity.critical { background: rgba(255, 107, 107, 0.08); border: 1px solid rgba(255, 107, 107, 0.2); color: var(--red); }
+
+  .severity-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0; animation: pulse 2s ease-in-out infinite;
+  }
+
+  .severity.low .severity-dot { background: var(--accent); }
+  .severity.medium .severity-dot { background: var(--yellow); }
+  .severity.high .severity-dot { background: var(--orange); }
+  .severity.critical .severity-dot { background: var(--red); }
+
+  .cta-section { margin-top: 24px; }
+
+  .cta-button {
+    display: block; width: 100%;
+    padding: 18px 32px;
+    background: var(--accent); color: var(--bg);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 15px; font-weight: 700;
+    border: none; border-radius: 12px;
+    cursor: pointer; text-align: center;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(201, 168, 76, 0.25);
+  }
+
+  .cta-sub { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 12px; }
+
+  /* FORMULA */
+  .formula-section { padding: 0 0 80px; }
+
+  .formula-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+  }
+
+  .formula-header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .formula-header svg { flex-shrink: 0; }
+  .formula-card h2 { font-size: 18px; font-weight: 700; }
+  .formula-card .subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
+
+  .formula-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  .formula-line { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+  .formula-label { color: var(--text-muted); }
+  .formula-value { font-weight: 700; color: var(--accent); }
+  .formula-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+  .formula-result { font-size: 16px; font-weight: 700; color: var(--text); }
+  .formula-notes { margin-top: 20px; }
+  .formula-notes p { font-size: 12px; color: var(--text-muted); line-height: 1.7; margin-bottom: 6px; }
+  .formula-notes p strong { color: var(--text); }
+
+  /* PROOF - Vertical Chart Blocks */
+  .proof-section { padding: 0 0 80px; }
+
+  .proof-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .proof-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 28px 36px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s ease, transform 0.2s ease;
+  }
+
+  .proof-block:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+  }
+
+  .proof-block::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 40px; height: 3px;
+    background: var(--accent);
+    border-radius: 0 0 3px 3px;
+  }
+
+  .proof-number {
+    font-size: 56px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+
+  .proof-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .proof-bar-visual {
+    width: 100%; height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    margin: 20px 0 16px;
+    overflow: hidden;
+  }
+
+  .proof-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 1.2s ease-out;
+  }
+
+  .proof-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* CONTEXT CARDS */
+  .context-section { padding: 0 0 80px; }
+
+  .context-section-header { text-align: center; margin-bottom: 40px; }
+  .context-section-header h2 { font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+  .context-section-header p { font-size: 15px; color: var(--text-muted); }
+
+  .context-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .context-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    transition: border-color 0.3s ease, transform 0.2s ease;
+  }
+
+  .context-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+  }
+
+  .context-icon {
+    width: 48px; height: 48px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(201, 168, 76, 0.15);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .context-icon svg {
+    width: 22px; height: 22px;
+    stroke: var(--accent);
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .context-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+  .context-card p { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
+
+  /* CLOSING CTA */
+  .closing-section {
+    padding: 0 0 80px;
+  }
+
+  .closing-card {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    padding: 48px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .closing-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center top, rgba(201, 168, 76, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .closing-card h2 {
+    font-size: clamp(24px, 3.5vw, 36px);
+    font-weight: 700;
+    margin-bottom: 32px;
+    position: relative;
+  }
+
+  .closing-card h2 .highlight {
+    color: var(--accent);
+  }
+
+  .closing-promises {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .closing-promise {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .closing-promise svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--accent);
+    fill: none;
+    stroke-width: 2;
+    flex-shrink: 0;
+  }
+
+  .closing-cta {
+    display: inline-block;
+    padding: 18px 48px;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+  .closing-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(201, 168, 76, 0.25);
+  }
+
+  .closing-guarantee {
+    margin-top: 24px;
+    font-size: 14px;
+    color: var(--text-muted);
+    font-style: italic;
+    position: relative;
+  }
+
+  .closing-guarantee strong {
+    color: var(--accent);
+    font-style: normal;
+  }
+
+  footer {
+    padding: 28px 0;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav>
+    <div class="nav-potentialcheck">Potentialcheck</div>
+    <div class="nav-badge">Kostenlos</div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-tag">Prozess-Kostenrechner</div>
+    <h1>Was kosten Sie<br><span class="highlight">manuelle Prozesse</span><br>pro Jahr?</h1>
+    <p>3 Regler. 10 Sekunden. Eine Zahl, die Sie nicht mehr vergessen.</p>
+  </section>
+
+  <section class="calc-section">
+    <div class="calc-grid">
+      <div class="calc-inputs">
+        <h2>Ihre Angaben</h2>
+        <p class="subtitle">Bewegen Sie die Regler – die Berechnung aktualisiert sich sofort.</p>
+
+        <div class="input-group">
+          <div class="input-label">
+            <label>Anzahl Mitarbeiter</label>
+            <span class="value-display" id="val-employees">25</span>
+          </div>
+          <div class="slider-container">
+            <input type="range" id="employees" min="1" max="200" value="25">
+          </div>
+          <div class="slider-labels"><span>1</span><span>200</span></div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-label">
+            <label>Ø Stundenlohn (CHF)</label>
+            <span class="value-display" id="val-hourly">55</span>
+          </div>
+          <div class="slider-container">
+            <input type="range" id="hourly" min="25" max="150" value="55">
+          </div>
+          <div class="slider-labels"><span>25</span><span>150</span></div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-label">
+            <label>Stunden manueller Arbeit pro MA / Woche</label>
+            <span class="value-display" id="val-hours">5</span>
+          </div>
+          <div class="slider-container">
+            <input type="range" id="hours" min="1" max="25" value="5">
+          </div>
+          <div class="slider-labels"><span>1h</span><span>25h</span></div>
+        </div>
+      </div>
+
+      <div class="calc-results">
+        <div class="result-card main">
+          <div class="label">Jährliche Kosten durch manuelle Prozesse</div>
+          <div class="amount" id="result-year">CHF 343'750</div>
+          <div class="suffix">pro Jahr – vermeidbar</div>
+        </div>
+        <div class="result-row">
+          <div class="result-small">
+            <div class="label">Pro Monat</div>
+            <div class="amount" id="result-month">CHF 28'646</div>
+          </div>
+          <div class="result-small">
+            <div class="label">Pro Woche</div>
+            <div class="amount" id="result-week">CHF 6'875</div>
+          </div>
+        </div>
+        <div class="severity medium" id="severity">
+          <div class="severity-dot"></div>
+          <span id="severity-text">Handlungsbedarf – Sie verlieren monatlich einen Mitarbeiter-Lohn.</span>
+        </div>
+        <div class="cta-section">
+          <a href="https://meetings-eu1.hubspot.com/lpecar/erstgesprach-mit-luka-zeitersparnis" target="_blank" class="cta-button">Kostenloses 15-Min Gespräch buchen</a>
+          <p class="cta-sub">Kein Verkaufsgespräch. Nur Potentialcheck.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="formula-section">
+    <div class="formula-card">
+      <div class="formula-header">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <h2>So rechnen wir</h2>
+      </div>
+      <p class="subtitle">Volle Transparenz – keine versteckten Annahmen, keine aufgeblasenen Zahlen.</p>
+      <div class="formula-block">
+        <div class="formula-line">
+          <span class="formula-label">Anzahl Mitarbeiter</span>
+          <span class="formula-value" id="f-employees">25</span>
+        </div>
+        <div class="formula-line">
+          <span class="formula-label">× Ø Stundenlohn</span>
+          <span class="formula-value" id="f-hourly">CHF 55</span>
+        </div>
+        <div class="formula-line">
+          <span class="formula-label">× Stunden manuell pro Woche / MA</span>
+          <span class="formula-value" id="f-hours">5h</span>
+        </div>
+        <hr class="formula-divider">
+        <div class="formula-line">
+          <span class="formula-label">= Kosten pro Woche</span>
+          <span class="formula-result" id="f-weekly">CHF 6'875</span>
+        </div>
+        <div class="formula-line">
+          <span class="formula-label">× 4.33 Wochen</span>
+          <span class="formula-result" id="f-monthly">CHF 28'646 / Monat</span>
+        </div>
+        <div class="formula-line">
+          <span class="formula-label">× 50 Arbeitswochen</span>
+          <span class="formula-result" id="f-yearly">CHF 343'750 / Jahr</span>
+        </div>
+      </div>
+      <div class="formula-notes">
+        <p><strong>Stundenlohn:</strong> Wir empfehlen den vollen Arbeitgeberkostensatz (Bruttolohn + Sozialabgaben). Falls Sie nur den Nettolohn kennen: Faktor 1.15 – 1.20 draufrechnen.</p>
+        <p><strong>Arbeitswochen:</strong> 50 Wochen pro Jahr (52 minus Feiertage und Betriebsferien).</p>
+        <p><strong>Monatsberechnung:</strong> 4.33 Wochen = Durchschnitt über 12 Monate (52 ÷ 12).</p>
+        <p><strong>Konservative Schätzung:</strong> Die tatsächlichen Kosten sind oft höher, weil Opportunitätskosten (verlorene Aufträge, langsame Reaktionszeiten) nicht einberechnet sind.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="proof-section">
+    <div class="proof-grid">
+      <div class="proof-block">
+        <div class="proof-number">5</div>
+        <div class="proof-label">Unternehmen</div>
+        <div class="proof-bar-visual">
+          <div class="proof-bar-fill" data-width="100%"></div>
+        </div>
+        <div class="proof-desc">In 1.5 Wochen gewonnen – vom Erstkontakt bis zum Auftrag.</div>
+      </div>
+      <div class="proof-block">
+        <div class="proof-number">100%</div>
+        <div class="proof-label">Abschlussquote</div>
+        <div class="proof-bar-visual">
+          <div class="proof-bar-fill" data-width="100%"></div>
+        </div>
+        <div class="proof-desc">Jedes Erstgespräch führte direkt zum Auftrag.</div>
+      </div>
+      <div class="proof-block">
+        <div class="proof-number">0</div>
+        <div class="proof-label">Risiko</div>
+        <div class="proof-bar-visual">
+          <div class="proof-bar-fill" data-width="0%"></div>
+        </div>
+        <div class="proof-desc">Sie zahlen nur bei Erfolg. Funktioniert es nicht, geht es auf uns.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="context-section">
+    <div class="context-section-header">
+      <h2>Kennen Sie das?</h2>
+      <p>Die drei häufigsten Zeitfresser in Schweizer KMU.</p>
+    </div>
+    <div class="context-grid">
+      <div class="context-card">
+        <div class="context-icon">
+          <svg viewBox="0 0 24 24">
+            <polyline points="17 1 21 5 17 9"></polyline>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+            <polyline points="7 23 3 19 7 15"></polyline>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+          </svg>
+        </div>
+        <h3>Daten fliessen von Hand</h3>
+        <p>Excel → CRM → PDF → E-Mail. Ihre Mitarbeiter sind der Kleber zwischen Systemen, die nicht miteinander sprechen.</p>
+      </div>
+      <div class="context-card">
+        <div class="context-icon">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </div>
+        <h3>Suchen statt Finden</h3>
+        <p>Dokumente, Projektinfos, Kundendaten – alles verteilt über Ordner, Mails und Köpfe. Jede Suche kostet Minuten.</p>
+      </div>
+      <div class="context-card">
+        <div class="context-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+        </div>
+        <h3>Kunden kommen zufällig</h3>
+        <p>Kein System, das Leads erfasst, nachverfolgt und aktiviert. Anfragen gehen unter, Follow-ups werden vergessen.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="closing-section">
+    <div class="closing-card">
+      <h2>Bereit herauszufinden, wo Ihr<br><span class="highlight">grösster Hebel</span> liegt?</h2>
+
+      <a href="https://meetings-eu1.hubspot.com/lpecar/erstgesprach-mit-luka-zeitersparnis" target="_blank" class="closing-cta">Kostenloses 15-Min Gespräch buchen</a>
+
+      <p class="closing-guarantee">Sparen Sie Zeit, zahlen Sie. Sparen Sie keine Zeit, <strong>geht es auf uns.</strong></p>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 · <a href="https://www.linkedin.com/in/luka-pecar-19222a276/" target="_blank">Kontakt</a> · Baar, Zug</p>
+  </footer>
+
+</div>
+
+<script>
+  const employeesSlider = document.getElementById('employees');
+  const hourlySlider = document.getElementById('hourly');
+  const hoursSlider = document.getElementById('hours');
+  const valEmployees = document.getElementById('val-employees');
+  const valHourly = document.getElementById('val-hourly');
+  const valHours = document.getElementById('val-hours');
+  const resultYear = document.getElementById('result-year');
+  const resultMonth = document.getElementById('result-month');
+  const resultWeek = document.getElementById('result-week');
+  const severityEl = document.getElementById('severity');
+  const severityText = document.getElementById('severity-text');
+
+  function formatCHF(num) {
+    return "CHF " + Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+  }
+
+  function calculate() {
+    const employees = parseInt(employeesSlider.value);
+    const hourly = parseInt(hourlySlider.value);
+    const hours = parseInt(hoursSlider.value);
+
+    valEmployees.textContent = employees;
+    valHourly.textContent = hourly;
+    valHours.textContent = hours;
+
+    const weekly = employees * hourly * hours;
+    const monthly = weekly * 4.33;
+    const yearly = weekly * 50;
+
+    resultWeek.textContent = formatCHF(weekly);
+    resultMonth.textContent = formatCHF(monthly);
+    resultYear.textContent = formatCHF(yearly);
+
+    document.getElementById('f-employees').textContent = employees;
+    document.getElementById('f-hourly').textContent = 'CHF ' + hourly;
+    document.getElementById('f-hours').textContent = hours + 'h';
+    document.getElementById('f-weekly').textContent = formatCHF(weekly);
+    document.getElementById('f-monthly').textContent = formatCHF(monthly) + ' / Monat';
+    document.getElementById('f-yearly').textContent = formatCHF(yearly) + ' / Jahr';
+
+    severityEl.className = 'severity';
+    if (yearly < 50000) {
+      severityEl.classList.add('low');
+      severityText.textContent = 'Optimierungspotenzial vorhanden – kleine Hebel, grosse Wirkung.';
+    } else if (yearly < 200000) {
+      severityEl.classList.add('medium');
+      severityText.textContent = 'Handlungsbedarf – Sie verlieren monatlich so viel wie ein Mitarbeiter-Lohn.';
+    } else if (yearly < 500000) {
+      severityEl.classList.add('high');
+      severityText.textContent = 'Dringend – das entspricht mehreren Vollzeitstellen pro Jahr.';
+    } else {
+      severityEl.classList.add('critical');
+      severityText.textContent = 'Kritisch – sechsstellige Summen, die jedes Jahr verloren gehen.';
+    }
+
+    updateSliderFill(employeesSlider);
+    updateSliderFill(hourlySlider);
+    updateSliderFill(hoursSlider);
+  }
+
+  function updateSliderFill(slider) {
+    const percentage = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+    slider.style.background = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${percentage}%, var(--border) ${percentage}%, var(--border) 100%)`;
+  }
+
+  employeesSlider.addEventListener('input', calculate);
+  hourlySlider.addEventListener('input', calculate);
+  hoursSlider.addEventListener('input', calculate);
+  calculate();
+
+  // Animate proof bars on scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.querySelectorAll('.proof-bar-fill').forEach(fill => {
+          const target = fill.dataset.width;
+          fill.style.width = '0%';
+          setTimeout(() => { fill.style.width = target; }, 300);
+        });
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.3 });
+
+  observer.observe(document.querySelector('.proof-grid'));
+</script>
+</body>
+</html>
